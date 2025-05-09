@@ -1,18 +1,24 @@
-# ignore all root items
-/*
+# Ambientes virtuais
+venv/
+.env
+*.env
 
-# unignore folders (the / is optional - I just think it looks nice)
-!src/
-!tests/
-!docs/
+# Cache e compilação do Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.log
 
-# unignore files
-!.gitignore
-!README.md
-!pyproject.toml
-!uv.lock
+# Arquivos de sistema
+.DS_Store
+Thumbs.db
 
-# recursively re-ignore
-__pycache__
+# Dados gerados
+files/
 
-files
+# IDEs e editores
+.vscode/
+.idea/
+*.swp
+*.swo
