@@ -1,14 +1,13 @@
 import json
+from config import JSONS_PATH
 from selenium.webdriver.common.by import By
 from selenium.common.exceptions import NoSuchElementException
 from scraper.league_scraper import extract_leagues
 
-def extract_countries(driver, jsons_path):
+def extract_countries(driver):
     try:
         driver.find_element(By.CSS_SELECTOR, ".lmc__itemMore").click()
-        print("More leagues button clicked")
     except NoSuchElementException:
-        print("More leagues button not found")
         driver.quit()
 
     try:
@@ -19,8 +18,9 @@ def extract_countries(driver, jsons_path):
 
     countries = [el.text for el in countries_elements]
 
-    with open(f"{jsons_path}/countries.json", "w") as f:
+    with open(f"{JSONS_PATH}/countries.json", "w") as f:
         json.dump(countries, f, indent=4)
 
+    return countries, countries_elements
     # Exemplo: extrair ligas do Brasil
     extract_leagues(driver, "Brazil", countries, countries_elements, jsons_path)

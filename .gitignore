@@ -4,7 +4,7 @@ venv/
 *.env
 
 # Cache e compilação do Python
-__pycache__/
+scraper/__pycache__/
 *.pyc
 *.pyo
 *.pyd
