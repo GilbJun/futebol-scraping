@@ -3,6 +3,7 @@ venv/
 .env
 *.env
 
+
 # Cache e compilação do Python
 scraper/__pycache__/
 *.pyc
@@ -22,3 +23,5 @@ files/
 .idea/
 *.swp
 *.swo
+
+database/
