@@ -20,6 +20,7 @@ class MatchScraper:
 
     def extract_match_details(self, matchId):
         from slugify import slugify
+        from utils import save_team_image
 
         urlMatch = URL_MATCH + matchId
         self.driver.get(urlMatch)
@@ -34,14 +35,28 @@ class MatchScraper:
             awayScore = None
         homeTeamLink = teamsElements[0].get_attribute("href")
         awayTeamLink = teamsElements[1].get_attribute("href")
+        home_team_name = self.get_match_home_name()
+        away_team_name = self.get_match_away_name()
+        home_team_icon_url = self.driver.find_element(By.CSS_SELECTOR, ".duelParticipant__home img.participant__image").get_attribute("src")
+        away_team_icon_url = self.driver.find_element(By.CSS_SELECTOR, ".duelParticipant__away img.participant__image").get_attribute("src")
+        home_team_id = homeTeamLink.split("/")[-2]
+        away_team_id = awayTeamLink.split("/")[-2]
+        home_team_icon_name = home_team_id + "-"+ slugify(home_team_name)
+        away_team_icon_name = away_team_id + "-"+ slugify(away_team_name)
+
+        save_team_image(home_team_icon_url, home_team_icon_name)
+        save_team_image(away_team_icon_url, away_team_icon_name)
+            
+
+
         matchDetails = {
             "date": date,
-            "home_team_id": homeTeamLink.split("/")[-2],
-            "home_team_name": self.get_match_home_name(),
-            "home_team_icon": self.get_match_home_icon(),
-            "away_team_id": awayTeamLink.split("/")[-2],
-            "away_team_name": self.get_match_away_name(),
-            "away_team_icon": self.get_match_away_icon(),
+            "home_team_id": home_team_id,
+            "home_team_name": home_team_name,
+            "home_team_icon": home_team_icon_name,
+            "away_team_id": away_team_id,
+            "away_team_name": away_team_name,
+            "away_team_icon": away_team_icon_name,
             "home_score": homeScore,
             "away_score": awayScore,
             "matchId": matchId

@@ -10,6 +10,9 @@ from selenium.webdriver.support import expected_conditions as EC
 from scraper.match_scraper import MatchScraper
 
 def extract_leagues(driver, countries, countries_elements):
+    from scraper.firestore_manager import get_firestore_client
+    db = get_firestore_client()
+    countries_collection = db.collection("countries")
 
     leagues = {}
     leaguesTotal = 0
@@ -36,10 +39,21 @@ def extract_leagues(driver, countries, countries_elements):
         leaguesTotal += len(currentLeagues)
         print(f"Leagues for {currentCountry}: {len(currentLeagues)}")
 
+        # Salva o país na coleção 'countries'
+        countryId = slugify(currentCountry)
+        country_doc = countries_collection.document(countryId)
+        country_doc.set({"name": currentCountry})
+
+        # Salva as ligas como subcoleção 'leagues' dentro do país
+        leagues_collection = country_doc.collection("leagues")
+        for league_name in currentLeagues:
+            league_id = slugify(league_name)
+            leagues_collection.document(league_id).set({"name": league_name})
+
 
     # Save the leagues to a JSON file
-    with open(f"{JSONS_PATH}/leagues.json", "w") as f:
-        json.dump(leagues, f, indent=4)
+    # with open(f"{JSONS_PATH}/leagues.json", "w") as f:
+    #     json.dump(leagues, f, indent=4)
 
     return leagues, leaguesTotal
 
@@ -108,7 +122,10 @@ def extract_league_matches(driver, country, league):
     # Salva no Firestore ao invés de JSON
     from scraper.firestore_manager import get_firestore_client
     db = get_firestore_client()
-    collection_ref = db.collection("matches")
+    countryId   = slugify(country)
+    leagueId    = slugify(league)
+
+    collection_ref = db.collection("countries").document(countryId).collection("leagues").document(leagueId).collection("matches")
     for match_id, match_data in detaliedMatches.items():
         # Salva cada match como um documento, usando o match_id como ID
         collection_ref.document(str(match_id)).set(match_data)

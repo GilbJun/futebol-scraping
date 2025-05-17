@@ -16,9 +16,7 @@ def main():
 
     # Para extrair detalhes dos jogos de uma liga específica:
     matches_dict = extract_league_matches(driver, "Brazil", "Serie A Betano")
-    # Para usar o MatchScraper:
-    # scraper = MatchScraper(driver)
-    # match_details = scraper.extract_matches_details(matches_dict)
+    
 
     driver.quit()
 
