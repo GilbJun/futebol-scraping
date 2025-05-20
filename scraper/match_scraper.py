@@ -14,11 +14,20 @@ class MatchScraper:
         matchesDetails = {}
         for matchId, match in matches.items():
             formattedMatchId = matchId.split("_")[-1]
-            matchesDetails[formattedMatchId] = self.extract_match_details(formattedMatchId)
-            if(matchesDetails[formattedMatchId] == None):
-                print(formattedMatchId + " Removed because is empty")
-                del matchesDetails[formattedMatchId]
-            else: matchesDetails[formattedMatchId]["round"] = match["round"]
+            attempt = 0
+            match_details = None
+            while attempt < 3:
+                try:
+                    match_details = self.extract_match_details(formattedMatchId)
+                    break
+                except Exception as e:
+                    print(f"Error extracting match {formattedMatchId} (attempt {attempt+1}/3): {e}")
+                    attempt += 1
+            if match_details is None:
+                print(formattedMatchId + " Removed because is empty or failed after 3 attempts")
+                continue
+            match_details["round"] = match["round"]
+            matchesDetails[formattedMatchId] = match_details
         return matchesDetails
 
     def extract_match_details(self, matchId):

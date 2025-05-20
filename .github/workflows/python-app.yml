@@ -29,6 +29,8 @@ jobs:
       run: |
         mkdir -p database
         echo "${{ secrets.GOOGLE_APPLICATION_CREDENTIALS_JSON }}" | base64 --decode > database/key.json
+      env:
+        FIREBASE_STORAGE_BUCKET: fufutebol.appspot.com
 
     - name: Run main scraper
       run: python main.py
