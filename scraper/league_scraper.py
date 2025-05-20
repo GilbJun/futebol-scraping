@@ -70,15 +70,24 @@ def extract_league_matches(pool, country, league):
     country_doc = db.collection("countries").document(countryId)
     league_doc = country_doc.collection("leagues").document(leagueId)
     league_data = league_doc.get().to_dict()
+    
     today_date = datetime.now().strftime("%Y-%m-%d")
+    end_date_str = league_data.get("endDate") if league_data else None
+    if end_date_str:
+        try:
+            end_date = datetime.strptime(end_date_str, "%Y-%m-%d").date()
+            today = datetime.strptime(today_date, "%Y-%m-%d").date()
+            if end_date < today:
+                print(f"Skipping update for league: {league} (League has finished)")
+                return
+        except Exception as e:
+            print(f"Warning: Could not parse endDate '{end_date_str}' for league {league}: {e}")
 
     if league_data and league_data.get("updated_at") == today_date:
         print(f"Skipping update for league: {league} (already updated today)")
+        
         return
-    if league_data and league_data.get("endDate") and league_data.get("endDate") < today_date:
-        print(f"Skipping update for league: {league} (League have finished)")
-        return
-
+    
     # Prepare URLs for results and fixtures
     leagueSlug = slugify(league)
     countrySlug = slugify(country)
