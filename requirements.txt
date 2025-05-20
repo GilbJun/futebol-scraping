@@ -1,0 +1,6 @@
+google-cloud-firestore
+selenium
+python-slugify
+psutil
+requests
+google-cloud-storage

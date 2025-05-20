@@ -7,6 +7,7 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.common.exceptions import TimeoutException
 from selenium.webdriver.support import expected_conditions as EC
 
+from utils import find_if_exists_by_selector
 from scraper.match_scraper import MatchScraper
 
 def extract_leagues(driver, countries, countries_elements):
@@ -57,21 +58,28 @@ def extract_leagues(driver, countries, countries_elements):
 
     return leagues, leaguesTotal
 
-def extract_league_matches(driver, country, league):
+def extract_league_matches(pool, country, league):
     from config import URL_LEAGUE_MATCHS
-    from scraper.driver_manager import get_driver 
     from utils import chunk_dict
+    from datetime import datetime
+    from scraper.firestore_manager import get_firestore_client
 
-    def worker(matches_chunk, results, idx):
-        local_driver = get_driver()  # Cria um novo driver para a thread
-        try:
-            scraper = MatchScraper(local_driver)
-            results[idx] = scraper.extract_matches_details(matches_chunk)
-        finally:
-            local_driver.quit()
+    db = get_firestore_client()
+    countryId = slugify(country)
+    leagueId = slugify(league)
+    country_doc = db.collection("countries").document(countryId)
+    league_doc = country_doc.collection("leagues").document(leagueId)
+    league_data = league_doc.get().to_dict()
+    today_date = datetime.now().strftime("%Y-%m-%d")
 
-    # Preparing vars
-    matches = {}
+    if league_data and league_data.get("updated_at") == today_date:
+        print(f"Skipping update for league: {league} (already updated today)")
+        return
+    if league_data and league_data.get("endDate") and league_data.get("endDate") < today_date:
+        print(f"Skipping update for league: {league} (League have finished)")
+        return
+
+    # Prepare URLs for results and fixtures
     leagueSlug = slugify(league)
     countrySlug = slugify(country)
     urlsToFind = [
@@ -79,11 +87,51 @@ def extract_league_matches(driver, country, league):
         URL_LEAGUE_MATCHS + countrySlug + "/" + leagueSlug + "/fixtures"
     ]
 
-    # Get Match List for to consult details
+    # Worker function: each thread creates its own driver and scrapes its chunk
+    def worker(matches_chunk, idx, urlsToFind, country, league):
+        from scraper.driver_manager import get_driver
+        from utils import find_if_exists_by_selector, safe_get
+        from slugify import slugify
+        local_driver = get_driver()
+        matches = {}
+        leagueSlug = slugify(league)
+        countrySlug = slugify(country)
+        for currentUrl in urlsToFind:
+            safe_get(local_driver, currentUrl)
+            leagueElement = find_if_exists_by_selector(".leagues--static.event--leagues", local_driver)
+            if leagueElement != False and len(leagueElement) > 0:
+                matchElements = leagueElement[0].find_elements(By.CSS_SELECTOR, ".event__match, .event__round")
+            else:
+                matchElements = []
+            currentRound = ""
+            for matchElement in matchElements:
+                if "event__round" in matchElement.get_attribute("class").split(' '):
+                    currentRound = matchElement.text
+                    continue
+                matchId = matchElement.get_attribute("id")
+                matches[matchId] = {
+                    "id": matchId,
+                    "round": currentRound
+                }
+        try:
+            scraper = MatchScraper(local_driver)
+            result = scraper.extract_matches_details(matches_chunk)
+            return idx, result
+        finally:
+            local_driver.quit()
+
+    # Get all matches (serially, with a temporary driver)
+    from scraper.driver_manager import get_driver
+    from utils import find_if_exists_by_selector, safe_get
+    matches = {}
+    temp_driver = get_driver()
     for currentUrl in urlsToFind:
-        driver.get(currentUrl)
-        leagueElement = driver.find_element(By.CSS_SELECTOR, ".leagues--static.event--leagues")
-        matchElements = leagueElement.find_elements(By.CSS_SELECTOR, ".event__match, .event__round")
+        safe_get(temp_driver, currentUrl)
+        leagueElement = find_if_exists_by_selector(".leagues--static.event--leagues", temp_driver)
+        if leagueElement != False and len(leagueElement) > 0:
+            matchElements = leagueElement[0].find_elements(By.CSS_SELECTOR, ".event__match, .event__round")
+        else:
+            matchElements = []
         currentRound = ""
         for matchElement in matchElements:
             if "event__round" in matchElement.get_attribute("class").split(' '):
@@ -94,40 +142,53 @@ def extract_league_matches(driver, country, league):
                 "id": matchId,
                 "round": currentRound
             }
+    temp_driver.quit()
 
-    # Running threads to find details in paralalel
-    num_threads = 4
+    # Split matches for threads
+    num_threads = 2
     match_chunks = chunk_dict(matches, num_threads)
-    threads = []
-    results = [None] * num_threads
+
+    # Submit tasks to the pool
+    from concurrent.futures import as_completed
+    futures = []
     for i in range(num_threads):
-        t = threading.Thread(target=worker, args=(match_chunks[i], results, i))
-        threads.append(t)
-        t.start()
-    for t in threads:
-        t.join()
+        futures.append(pool.submit(worker, match_chunks[i], i, urlsToFind, country, league))
 
     detaliedMatches = {}
+    for future in as_completed(futures):
+        idx, result = future.result()
+        if result:
+            detaliedMatches.update(result)
 
-    # Including result by result from the threads to our dictionary
-    for r in results:
-        if r:
-            detaliedMatches.update(r)
-
-    # # Save the leagues to a JSON file
-    # with open(f"{JSONS_PATH}/matches.json", "w") as f:
-    #     json.dump(detaliedMatches, f, indent=4)
-
-
-    # Salva no Firestore ao invés de JSON
-    from scraper.firestore_manager import get_firestore_client
-    db = get_firestore_client()
-    countryId   = slugify(country)
-    leagueId    = slugify(league)
-
-    collection_ref = db.collection("countries").document(countryId).collection("leagues").document(leagueId).collection("matches")
+    # Find startDate and endDate
+    startDate = None
+    endDate = None
+    date_format = "%d.%m.%Y %H:%M"
     for match_id, match_data in detaliedMatches.items():
-        # Salva cada match como um documento, usando o match_id como ID
+        match_date_str = match_data.get("date")
+        if match_date_str:
+            try:
+                match_date = datetime.strptime(match_date_str, date_format)
+            except ValueError:
+                # Try without time if needed
+                date_format_simple = "%d.%m.%Y"
+                match_date = datetime.strptime(match_date_str, date_format_simple)
+            if startDate is None or match_date < startDate:
+                startDate = match_date
+            if endDate is None or match_date > endDate:
+                endDate = match_date
+        # Save each match as a document
+        collection_ref = db.collection("countries").document(countryId).collection("leagues").document(leagueId).collection("matches")
         collection_ref.document(str(match_id)).set(match_data)
+
+    print(len(detaliedMatches), " matches updated")
+    if len(detaliedMatches):
+        country_doc.update({"hasMatches": True})
+        league_doc.update({
+            "hasMatches": True,
+            "updated_at": today_date,
+            "startDate": startDate.strftime("%Y-%m-%d") if startDate else None,
+            "endDate": endDate.strftime("%Y-%m-%d") if endDate else None
+        })
 
     return detaliedMatches

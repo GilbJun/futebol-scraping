@@ -15,17 +15,21 @@ class MatchScraper:
         for matchId, match in matches.items():
             formattedMatchId = matchId.split("_")[-1]
             matchesDetails[formattedMatchId] = self.extract_match_details(formattedMatchId)
-            matchesDetails[formattedMatchId]["round"] = match["round"]
+            if(matchesDetails[formattedMatchId] == None):
+                print(formattedMatchId + " Removed because is empty")
+                del matchesDetails[formattedMatchId]
+            else: matchesDetails[formattedMatchId]["round"] = match["round"]
         return matchesDetails
 
     def extract_match_details(self, matchId):
         from slugify import slugify
-        from utils import save_team_image
+        from utils import save_team_image, safe_get
+        print("extracting " + matchId)
 
         urlMatch = URL_MATCH + matchId
-        self.driver.get(urlMatch)
-        teamsElements = self.driver.find_elements(By.CSS_SELECTOR, "a.participant__participantName")
-        date = self.driver.find_element(By.CSS_SELECTOR, ".duelParticipant__startTime").text
+        safe_get(self.driver, urlMatch)
+        teamsElements = find_if_exists_by_selector("a.participant__participantName", self.driver)
+        date = find_if_exists_by_selector(".duelParticipant__startTime", self.driver)[0].text
         scoreElement = find_if_exists_by_selector(".detailScore__wrapper span:not(.detailScore__divider)", self.driver)
         if scoreElement:
             homeScore = scoreElement[0].text
@@ -33,6 +37,11 @@ class MatchScraper:
         else:
             homeScore = None
             awayScore = None
+
+        if not teamsElements or len(teamsElements) < 2:
+            print(f"Warning: Could not find both team elements for match {matchId}")
+            return None  # or return an empty dict, or handle as you prefer
+
         homeTeamLink = teamsElements[0].get_attribute("href")
         awayTeamLink = teamsElements[1].get_attribute("href")
         home_team_name = self.get_match_home_name()
@@ -65,7 +74,7 @@ class MatchScraper:
         matchDetails["home_team_slug"] = slugify(matchDetails["home_team_name"])
         matchDetails["away_team_slug"] = slugify(matchDetails["away_team_name"])
 
-        print("extracted match " + matchId)
+        print("done " + matchId)
         return matchDetails
 
     def get_match_home_name(self):

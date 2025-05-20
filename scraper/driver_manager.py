@@ -19,6 +19,7 @@ def get_driver(debbug = False):
         options.add_argument("--disable-dev-shm-usage")  # Evita erros em containers Linux
         
     driver = webdriver.Chrome(options=options)
+    driver.set_page_load_timeout(20)
     driver.get("http://www.flashscore.com")
 
     # Fecha o banner de cookies
