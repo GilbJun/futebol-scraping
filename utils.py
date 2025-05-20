@@ -71,7 +71,7 @@ def save_team_image(imageLink, image_name):
     from google.cloud import storage
 
     # Set your bucket name (should match your Firebase Storage bucket)
-    bucket_name = os.environ.get("FIREBASE_STORAGE_BUCKET") or "fufutebol.appspot.com"
+    bucket_name = os.environ.get("FIREBASE_STORAGE_BUCKET") or "fufutebol.firebasestorage.app"
     print("Using Firebase Storage bucket:", bucket_name)
     storage_path = f"teams/{image_name}.png"
 
