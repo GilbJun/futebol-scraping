@@ -8,7 +8,6 @@ on:
 
 jobs:
   build:
-
     runs-on: ubuntu-latest
 
     steps:
@@ -30,11 +29,10 @@ jobs:
         mkdir -p database
         echo "${{ secrets.GOOGLE_APPLICATION_CREDENTIALS_JSON }}" > database/key.json
 
-    # (Opcional) Rodar testes
-    - name: Run tests
-      run: |
-        if [ -d "tests" ]; then python -m unittest discover -s tests; else echo "No tests found."; fi
+    - name: Run main scraper
+      run: python main.py
 
-    # (Opcional) Rodar o scraper principal
-    # - name: Run main scraper
-    #   run: python main.py
+    - name: Check chromedriver version
+      run: |
+        which chromedriver || echo "chromedriver not found"
+        chromedriver --version || echo "chromedriver not available"
