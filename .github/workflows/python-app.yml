@@ -11,6 +11,10 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+    - name: Debug project_id (TEMP)
+      run: |
+        jq '.project_id' database/key.json
+        
     - name: Checkout repository
       uses: actions/checkout@v4
 
