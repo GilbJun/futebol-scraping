@@ -46,8 +46,8 @@ def save_team_image(imageLink, image_name):
     from google.cloud import storage
 
     # Set your bucket name (should match your Firebase Storage bucket)
-    bucket_name = os.environ.get("FIREBASE_STORAGE_BUCKET") or "fufutebol.appspot.com"
-    storage_prefix = ""
+    bucket_name = os.environ.get("FIREBASE_STORAGE_BUCKET") or "fufutebol.firebasestorage.app"
+    storage_prefix = "teams/"
     storage_path = f"{storage_prefix}{image_name}.png"
 
     # Initialize Firebase Storage client
@@ -76,7 +76,6 @@ def save_team_image(imageLink, image_name):
     # blob.make_public()
     print(f"Uploaded {image_name} to Firebase Storage.")
     return blob.public_url
-
 
 def count_active_webdrivers():
     webdriver_name = "chromedriver"  # Substitua pelo nome do WebDriver que você está usando
