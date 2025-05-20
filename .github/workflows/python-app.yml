@@ -30,9 +30,10 @@ jobs:
         mkdir -p database
         echo "${{ secrets.GOOGLE_APPLICATION_CREDENTIALS_JSON }}" | base64 --decode > database/key.json
     
-    - name: Debug project_id (TEMP)
+    - name: Debug key.json size
       run: |
-        jq '.project_id' database/key.json
+        ls -lh database/key.json
+        cat database/key.json | head -n 5
 
     - name: Run main scraper
       run: python main.py
