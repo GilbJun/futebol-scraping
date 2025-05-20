@@ -11,10 +11,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Debug project_id (TEMP)
-      run: |
-        jq '.project_id' database/key.json
-        
+
     - name: Checkout repository
       uses: actions/checkout@v4
 
@@ -32,6 +29,10 @@ jobs:
       run: |
         mkdir -p database
         echo "${{ secrets.GOOGLE_APPLICATION_CREDENTIALS_JSON }}" | base64 --decode > database/key.json
+    
+    - name: Debug project_id (TEMP)
+      run: |
+        jq '.project_id' database/key.json
 
     - name: Run main scraper
       run: python main.py
