@@ -27,7 +27,7 @@ jobs:
     - name: Set GOOGLE_APPLICATION_CREDENTIALS
       run: |
         mkdir -p database
-        echo "${{ secrets.GOOGLE_APPLICATION_CREDENTIALS_JSON }}" > database/key.json
+        echo "${{ secrets.GOOGLE_APPLICATION_CREDENTIALS_JSON }}" | base64 --decode > database/key.json
 
     - name: Run main scraper
       run: python main.py
