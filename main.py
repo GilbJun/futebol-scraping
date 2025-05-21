@@ -22,7 +22,7 @@ def main():
 
     db = get_firestore_client()
     countries_collection = db.collection("countries")
-    countries = ['brazil', 'spain','germany','argentina','italia','equador']
+    countries = ['brazil', 'spain','germany', 'france', 'italy','argentina','england', 'portugal', 'holand']
     with ThreadPoolExecutor(max_workers=2) as pool:
     
     # league_executions = 0
