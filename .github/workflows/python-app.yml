@@ -11,40 +11,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        country: [brazil, spain, germany, france]
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt
-
-      - name: Set GOOGLE_APPLICATION_CREDENTIALS
-        run: |
-          mkdir -p database
-          echo "${{ secrets.GOOGLE_APPLICATION_CREDENTIALS_JSON }}" | base64 --decode > database/key.json
-        env:
-          FIREBASE_STORAGE_BUCKET: fufutebol.firebasestorage.app
-
-      - name: Run main scraper for ${{ matrix.country }}
-        run: python main.py --country ${{ matrix.country }}
-
-      - name: Check chromedriver version
-        run: |
-          which chromedriver || echo "chromedriver not found"
-          chromedriver --version || echo "chromedriver not available"
-  scrape2:
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        country: [italy, argentina, england, portugal, holand]
+        country: [brazil, spain, germany, france, italy, argentina, england, portugal, holand]
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
