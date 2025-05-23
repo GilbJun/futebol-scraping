@@ -58,7 +58,7 @@ def save_team_image(imageLink, image_name):
     blobs = bucket.list_blobs(prefix=storage_prefix)
     for blob in blobs:
         if blob.name.endswith(f"{image_name}.png"):
-            print("image already exists in storage:", image_name)
+            # print("image already exists in storage:", image_name)
             return blob.public_url
 
     # Download image data
@@ -110,3 +110,33 @@ def safe_get(driver, url, retries=3, wait=5):
             time.sleep(wait)
     print(f"Failed to load {url} after {retries} attempts.")
     return False
+
+
+
+def insertFutureMatch(match):
+    """
+    Insert the match into the 'future_matches' collection if it is a future match (date > now).
+    """
+    from scraper.firestore_manager import get_firestore_client
+    from datetime import datetime
+    db = get_firestore_client()
+    future_matches_ref = db.collection("future_matches")
+    match_id = match.get("id")
+    
+    future_matches_ref.document(str(match_id)).set(match)
+        
+
+def getMatchDb(match):
+    from scraper.firestore_manager import get_firestore_client
+    db = get_firestore_client()
+    
+    match_doc = db.collection("countries") \
+        .document(match["country"]) \
+        .collection("leagues") \
+        .document(match["league"]) \
+        .collection("matches") \
+        .document(match["id"]).get()
+    if match_doc.exists:
+        return match_doc.to_dict()
+    else:
+        return {}

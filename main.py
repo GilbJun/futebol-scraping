@@ -1,4 +1,5 @@
 import json
+import argparse
 from scraper.driver_manager import get_driver
 from scraper.country_scraper import extract_countries
 from scraper.league_scraper import extract_leagues, extract_league_matches
@@ -7,6 +8,11 @@ from scraper.match_scraper import MatchScraper
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 def main():
+
+    parser = argparse.ArgumentParser(description="Run the scraper for a specific country or all countries.")
+    parser.add_argument('--country', type=str, help='Country to process (slug, e.g. brazil). If not set, process all.')
+    args = parser.parse_args()
+
     # driver = get_driver(True)
     # Exemplo de uso:
     # countries, countriesElements = extract_countries(driver)
@@ -22,7 +28,8 @@ def main():
 
     db = get_firestore_client()
     countries_collection = db.collection("countries")
-    countries = ['brazil', 'spain','germany', 'france', 'italy','argentina','england', 'portugal', 'holand']
+    all_countries = ['brazil', 'spain','germany', 'france', 'italy','argentina','england', 'portugal', 'holand']
+    countries = [args.country] if args.country else all_countries
     with ThreadPoolExecutor(max_workers=2) as pool:
     
     # league_executions = 0

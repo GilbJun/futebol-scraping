@@ -101,11 +101,13 @@ def extract_league_matches(pool, country, league):
         from scraper.driver_manager import get_driver
         from utils import find_if_exists_by_selector, safe_get
         from slugify import slugify
+            
         local_driver = get_driver()
         matches = {}
         leagueSlug = slugify(league)
         countrySlug = slugify(country)
         for currentUrl in urlsToFind:
+
             safe_get(local_driver, currentUrl)
             leagueElement = find_if_exists_by_selector(".leagues--static.event--leagues", local_driver)
             if leagueElement != False and len(leagueElement) > 0:
@@ -120,7 +122,7 @@ def extract_league_matches(pool, country, league):
                 matchId = matchElement.get_attribute("id")
                 matches[matchId] = {
                     "id": matchId,
-                    "round": currentRound
+                    "round": currentRound,
                 }
         try:
             scraper = MatchScraper(local_driver)
@@ -135,6 +137,9 @@ def extract_league_matches(pool, country, league):
     matches = {}
     temp_driver = get_driver()
     for currentUrl in urlsToFind:
+        futureMatch = False
+        if "fixtures" in currentUrl: futureMatch = True
+        
         safe_get(temp_driver, currentUrl)
         leagueElement = find_if_exists_by_selector(".leagues--static.event--leagues", temp_driver)
         if leagueElement != False and len(leagueElement) > 0:
@@ -149,7 +154,10 @@ def extract_league_matches(pool, country, league):
             matchId = matchElement.get_attribute("id")
             matches[matchId] = {
                 "id": matchId,
-                "round": currentRound
+                "round": currentRound,
+                "country": country,
+                "league": league,
+                "future" : futureMatch
             }
     temp_driver.quit()
 

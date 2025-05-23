@@ -11,11 +11,22 @@ class MatchScraper:
         self.driver = driver
 
     def extract_matches_details(self, matches):
+        from utils import insertFutureMatch, getMatchDb
         matchesDetails = {}
+        
         for matchId, match in matches.items():
             formattedMatchId = matchId.split("_")[-1]
+            match["id"] = formattedMatchId
             attempt = 0
             match_details = None
+
+            if match["future"]:
+                insertFutureMatch(match)
+            else:
+                # interrupt the looping if already ended the match and updated
+                dbMatch = getMatchDb(match)
+                if dbMatch.get("ended") == True: continue
+
             while attempt < 3:
                 try:
                     match_details = self.extract_match_details(formattedMatchId)
@@ -77,6 +88,7 @@ class MatchScraper:
             "away_team_icon": away_team_icon_name,
             "home_score": homeScore,
             "away_score": awayScore,
+            "ended": self._is_match_ended(date),
             "matchId": matchId
         }
 
@@ -106,3 +118,17 @@ class MatchScraper:
         imageStringBase64 = image_link_to_base64String(image)
         return imageStringBase64
 
+    def _is_match_ended(self, date_str):
+        """
+        Returns True if the match date is in the past, otherwise False.
+        """
+        from datetime import datetime
+        try:
+            try:
+                match_date = datetime.strptime(date_str, "%d.%m.%Y %H:%M")
+            except ValueError:
+                match_date = datetime.strptime(date_str, "%d.%m.%Y")
+            return match_date < datetime.now()
+        except Exception as e:
+            print(f"Could not parse date '{date_str}' for ended check: {e}")
+            return False
