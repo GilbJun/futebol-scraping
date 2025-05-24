@@ -100,13 +100,19 @@ def count_active_webdrivers():
 import time
 from selenium.common.exceptions import TimeoutException
 
-def safe_get(driver, url, retries=3, wait=5):
+def safe_get(driver, url, retries=3, wait=5, timeout=60):
+    from selenium.common.exceptions import TimeoutException
+    import time
     for attempt in range(retries):
         try:
+            driver.set_page_load_timeout(timeout)
             driver.get(url)
             return True
         except TimeoutException:
             print(f"Timeout loading {url}, retrying ({attempt+1}/{retries})...")
+            time.sleep(wait)
+        except Exception as e:
+            print(f"Error loading {url}: {e}, retrying ({attempt+1}/{retries})...")
             time.sleep(wait)
     print(f"Failed to load {url} after {retries} attempts.")
     return False
