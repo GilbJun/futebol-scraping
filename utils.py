@@ -134,12 +134,14 @@ def insertFutureMatch(match):
 
 def getMatchDb(match):
     from scraper.firestore_manager import get_firestore_client
+    from slugify import slugify
     db = get_firestore_client()
-    
+    leagueSlug = slugify(match["league"])
+
     match_doc = db.collection("countries") \
         .document(match["country"]) \
         .collection("leagues") \
-        .document(match["league"]) \
+        .document(leagueSlug) \
         .collection("matches") \
         .document(match["id"]).get()
     if match_doc.exists:
