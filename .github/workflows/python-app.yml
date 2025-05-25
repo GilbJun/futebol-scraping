@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        country: [brazil, spain, germany, france, argentina, england, portugal, italy, netherlands]
+        country: [brazil, spain, germany, france, argentina, england, portugal, italy, netherlands, world, south-america, europe]
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
