@@ -37,31 +37,26 @@ def image_link_to_base64String(imageLink):
     base64_string = base64.b64encode(image_data).decode('utf-8')
     return base64_string
 
-def save_team_image(imageLink, image_name):
+def _save_image_to_firebase(imageLink, image_name, folder):
     """
-    Uploads the team image to Firebase Storage if it does not already exist (by name, regardless of path).
+    Helper to upload an image to Firebase Storage if it does not already exist (by name, regardless of path).
     """
     import requests
     import os
     from google.cloud import storage
 
-    # Set your bucket name (should match your Firebase Storage bucket)
     bucket_name = os.environ.get("FIREBASE_STORAGE_BUCKET") or "fufutebol.firebasestorage.app"
-    storage_prefix = "teams/"
+    storage_prefix = f"{folder}/"
     storage_path = f"{storage_prefix}{image_name}.png"
 
-    # Initialize Firebase Storage client
     client = storage.Client.from_service_account_json('database/key.json')
     bucket = client.bucket(bucket_name)
 
-    # Check if any blob with this image_name exists in the 'teams/' folder (by name, not just path)
     blobs = bucket.list_blobs(prefix=storage_prefix)
     for blob in blobs:
         if blob.name.endswith(f"{image_name}.png"):
-            # print("image already exists in storage:", image_name)
             return blob.public_url
 
-    # Download image data
     if imageLink.startswith("http://") or imageLink.startswith("https://"):
         response = requests.get(imageLink)
         image_data = response.content
@@ -69,13 +64,25 @@ def save_team_image(imageLink, image_name):
         with open(imageLink, "rb") as image_file:
             image_data = image_file.read()
 
-    # Upload to Firebase Storage
     blob = bucket.blob(storage_path)
     blob.upload_from_string(image_data, content_type="image/png")
-    # Optionally make public
-    # blob.make_public()
-    print(f"Uploaded {image_name} to Firebase Storage.")
+    print(f"Uploaded {image_name} to Firebase Storage in {folder}/.")
     return blob.public_url
+
+
+def save_team_image(imageLink, image_name):
+    """
+    Uploads the team image to Firebase Storage if it does not already exist (by name, regardless of path).
+    """
+    return _save_image_to_firebase(imageLink, image_name, folder="teams")
+
+
+def save_league_image(imageLink, image_name):
+    """
+    Uploads the league image to Firebase Storage if it does not already exist (by name, regardless of path).
+    """
+    return _save_image_to_firebase(imageLink, image_name, folder="leagues")
+
 
 def count_active_webdrivers():
     webdriver_name = "chromedriver"  # Substitua pelo nome do WebDriver que você está usando

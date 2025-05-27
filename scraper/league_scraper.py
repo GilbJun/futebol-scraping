@@ -209,3 +209,125 @@ def extract_league_matches(pool, country, league):
         })
 
     return detaliedMatches
+
+def extract_league_tables(country, league, local_driver):
+    from scraper.firestore_manager import get_firestore_client
+    from config import URL_TABLE
+    from utils import find_if_exists_by_selector, save_league_image
+
+    
+    db = get_firestore_client()
+    countryId = slugify(country)
+    leagueId = slugify(league)
+    country_doc = db.collection("countries").document(countryId)
+    league_doc = country_doc.collection("leagues").document(leagueId)
+    league_data = league_doc.get().to_dict()
+
+    url_table = URL_TABLE.replace("<country>", countryId).replace("<league>", leagueId)
+    local_driver.get(url_table)
+    
+    # Getting table element
+    table_element = find_if_exists_by_selector("#tournament-table-tabs-and-content", local_driver)
+    if table_element == False or len(table_element) == 0:
+        print("Not able to load table for league:", league, "Error or not exists")
+        return False
+
+    positionsElements = find_if_exists_by_selector(".ui-table__body .ui-table__row", local_driver)
+    position = {}
+    positions = []
+
+    leagueYear      = find_if_exists_by_selector(".heading__info", local_driver)[0].text
+    leagueImage     = find_if_exists_by_selector(".heading__logo", local_driver)[0].get_attribute("src")
+    leagueYearSlug  = slugify(leagueYear)
+    save_league_image(leagueImage, league)
+
+    if positionsElements == False or len(positionsElements) == 0:
+        print("probably league is not table, needs to implement a function to get elimination competitions")
+        return False
+    
+    for positionElement in positionsElements:
+
+        teamId = positionElement \
+            .find_element(By.CSS_SELECTOR, ".tableCellParticipant__block a") \
+            .get_attribute("href").split("/")[-2]
+        
+        position["rank"]            = getTableRank(positionElement)
+        position["teamId"]          = teamId
+        position["name"]            = getTableTeamName(positionElement)
+        position["matches_played"]  = getTableMatchesPlayed(positionElement)
+        position["wins"]            = getTableWins(positionElement)
+        position["defeats"]         = getTableWins(positionElement)
+        position["winsdraws"]       = getTableDraws(positionElement)
+        position["losses"]          = getTableWins(positionElement)
+        position["goals"]           = getTableWins(positionElement)
+        position["goal_difference"] = getTableGoalDifference(positionElement)
+        position["points"]          = getTablePoints(positionElement)
+        position["last_games"]      = getTableLastGames(positionElement)
+
+        positions.append(position)
+        
+        
+
+
+
+    # Save to Firestore
+    league_doc.collection("tables") \
+        .document(leagueYearSlug).set({"positions": positions})
+
+    
+
+    return True
+
+def getTableRank(positionElement):
+    """
+    Extracts the rank from a position element.
+    """
+    return positionElement.find_element(By.CSS_SELECTOR, ".tableCellRank").text
+
+def getTableTeamName(positionElement):
+    """
+    Extracts the Team Name from a position element.
+    """
+    return positionElement.find_element(By.CSS_SELECTOR, ".tableCellParticipant__name").text
+def getTableMatchesPlayed(positionElement):
+    return getTableInfo(positionElement, "MP")
+        
+def getTableWins(positionElement):
+    return getTableInfo(positionElement, "W")
+def getTableDraws(positionElement):
+    return getTableInfo(positionElement, "D")
+def getTableLosses(positionElement):
+    return getTableInfo(positionElement, "L")
+def getTableGoals(positionElement):
+    return getTableInfo(positionElement, "G")
+def getTableGoalDifference(positionElement):
+    return getTableInfo(positionElement, "GD")
+def getTablePoints(positionElement):
+    return getTableInfo(positionElement, "PTS")
+def getTableLastGames(positionElement):
+    return getTableInfo(positionElement, "FORM")
+
+def getTableInfo(positionElement, info):
+    infos = {
+        "MP": 2,
+        "W": 3,
+        "D": 4,
+        "L": 5,
+        "G": 6,
+        "GD": 7,
+        "PTS": 8,
+        "FORM": 9
+    }
+
+    indexSearch = infos[info]
+
+    """
+    Extracts the number of matches played from a position element.
+    """
+    table = positionElement.find_element(By.XPATH, "./ancestor::*[@class='ui-table'][1]")
+    headers = table.find_elements(By.CSS_SELECTOR, ".ui-table__header .ui-table__headerCell")
+
+    if headers[indexSearch].text == info: 
+        return positionElement.find_elements(By.CSS_SELECTOR, ".table__cell")[indexSearch].text
+    else:
+        print("Warning: Could not find ",info," in expected position, using fallback")
