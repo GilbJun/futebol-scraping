@@ -12,7 +12,7 @@ def main():
     from scraper.firestore_manager import get_firestore_client
 
 
-    driver = get_driver(True)
+    driver = get_driver()
 
     db = get_firestore_client()
     countries_collection = db.collection("countries")

@@ -233,7 +233,7 @@ def extract_league_tables(country, league, local_driver):
         return False
 
     positionsElements = find_if_exists_by_selector(".ui-table__body .ui-table__row", local_driver)
-    position = {}
+    
     positions = []
 
     leagueYear      = find_if_exists_by_selector(".heading__info", local_driver)[0].text
@@ -251,6 +251,7 @@ def extract_league_tables(country, league, local_driver):
             .find_element(By.CSS_SELECTOR, ".tableCellParticipant__block a") \
             .get_attribute("href").split("/")[-2]
         
+        position = {}
         position["rank"]            = getTableRank(positionElement)
         position["teamId"]          = teamId
         position["name"]            = getTableTeamName(positionElement)
