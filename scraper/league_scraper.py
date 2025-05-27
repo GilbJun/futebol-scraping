@@ -258,7 +258,7 @@ def extract_league_tables(country, league, local_driver):
         position["matches_played"]  = getTableMatchesPlayed(positionElement)
         position["wins"]            = getTableWins(positionElement)
         position["defeats"]         = getTableWins(positionElement)
-        position["winsdraws"]       = getTableDraws(positionElement)
+        position["draws"]           = getTableDraws(positionElement)
         position["losses"]          = getTableWins(positionElement)
         position["goals"]           = getTableWins(positionElement)
         position["goal_difference"] = getTableGoalDifference(positionElement)
