@@ -239,7 +239,7 @@ def extract_league_tables(country, league, local_driver):
     leagueYear      = find_if_exists_by_selector(".heading__info", local_driver)[0].text
     leagueImage     = find_if_exists_by_selector(".heading__logo", local_driver)[0].get_attribute("src")
     leagueYearSlug  = slugify(leagueYear)
-    save_league_image(leagueImage, league)
+    save_league_image(leagueImage, slugify(league))
 
     if positionsElements == False or len(positionsElements) == 0:
         print("probably league is not table, needs to implement a function to get elimination competitions")
