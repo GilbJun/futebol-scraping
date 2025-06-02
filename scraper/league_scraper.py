@@ -83,10 +83,10 @@ def extract_league_matches(pool, country, league):
         except Exception as e:
             print(f"Warning: Could not parse endDate '{end_date_str}' for league {league}: {e}")
 
-    if league_data and league_data.get("updated_at") == today_date:
-        print(f"Skipping update for league: {league} (already updated today)")
+    # if league_data and league_data.get("updated_at") == today_date:
+    #     print(f"Skipping update for league: {league} (already updated today)")
         
-        return
+        # return
     
     # Prepare URLs for results and fixtures
     leagueSlug = slugify(league)
@@ -236,12 +236,13 @@ def save_next_matches_week(db, league_doc, countryId, leagueId, detaliedMatches)
             print(f"Could not parse date '{match_date_str}' for next_matches: {e}")
     # Save next_matches to a new collection (per-league)
     next_matches_ref = league_doc.collection("next_matches")
-    for doc in next_matches_ref.stream():
-        doc.reference.delete()
-    # Clean previous global next_matches collection for this league/country
     global_next_matches_ref = db.collection("next_matches_global")
-    # Remove only documents for this country/league
-    for doc in global_next_matches_ref.stream():
+    # Only delete past matches from next_matches using Firestore query on dateTime
+    # Per-league: delete only docs with dateTime < now
+    for doc in next_matches_ref.where("dateTime", "<", today).stream():
+        doc.reference.delete()
+    # Global: delete only docs for this league/country with dateTime < now
+    for doc in global_next_matches_ref.where("dateTime", "<", today).stream():
         if doc.id.startswith(f"{countryId}_{leagueId}_"):
             doc.reference.delete()
     # Save new next_matches (per-league)
