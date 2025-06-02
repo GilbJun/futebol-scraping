@@ -5,6 +5,7 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.common.exceptions import TimeoutException
 from selenium.webdriver.support import expected_conditions as EC
 from utils import find_if_exists_by_selector, insertFutureMatch, getMatchDb
+from datetime import datetime
 
 class MatchScraper:
     def __init__(self, driver):
@@ -88,9 +89,11 @@ class MatchScraper:
 
         save_team_image(home_team_icon_url, home_team_icon_name)
         save_team_image(away_team_icon_url, away_team_icon_name)
+        dateTime = datetime.strptime(date, "%d.%m.%Y %H:%M")
 
         matchDetails = {
             "date": date,
+            "dateTime": dateTime,
             "home_team_id": home_team_id,
             "home_team_name": home_team_name,
             "home_team_icon": home_team_icon_name,

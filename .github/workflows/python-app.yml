@@ -3,11 +3,6 @@ name: Python Scraper CI
 on:
   schedule:
     - cron: '0 3 * * *'
-  push:
-    branches: [ main ]
-  pull_request:
-    branches: [ main ]
-
 jobs:
   extract_matches:
     runs-on: ubuntu-latest
