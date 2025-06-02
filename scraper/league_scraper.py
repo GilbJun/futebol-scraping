@@ -208,7 +208,50 @@ def extract_league_matches(pool, country, league):
             "endDate": endDate.strftime("%Y-%m-%d") if endDate else None
         })
 
+    # After updating matches, also update next_matches collection with closest games from the week
+    save_next_matches_week(db, league_doc, countryId, leagueId, detaliedMatches)
+
     return detaliedMatches
+
+def save_next_matches_week(db, league_doc, countryId, leagueId, detaliedMatches):
+    """
+    Save matches from the next 7 days to both per-league and global collections.
+    """
+    from datetime import datetime, timedelta
+    today = datetime.now()
+    week_later = today + timedelta(days=7)
+    next_matches = []
+    for match_id, match_data in detaliedMatches.items():
+        match_date_str = match_data.get("date")
+        if not match_date_str:
+            continue
+        try:
+            try:
+                match_date = datetime.strptime(match_date_str, "%d.%m.%Y %H:%M")
+            except ValueError:
+                match_date = datetime.strptime(match_date_str, "%d.%m.%Y")
+            if today <= match_date <= week_later:
+                next_matches.append({"id": match_id, **match_data})
+        except Exception as e:
+            print(f"Could not parse date '{match_date_str}' for next_matches: {e}")
+    # Save next_matches to a new collection (per-league)
+    next_matches_ref = league_doc.collection("next_matches")
+    for doc in next_matches_ref.stream():
+        doc.reference.delete()
+    # Clean previous global next_matches collection for this league/country
+    global_next_matches_ref = db.collection("next_matches_global")
+    # Remove only documents for this country/league
+    for doc in global_next_matches_ref.stream():
+        if doc.id.startswith(f"{countryId}_{leagueId}_"):
+            doc.reference.delete()
+    # Save new next_matches (per-league)
+    for match in next_matches:
+        print("saving week match:", match["id"])
+        next_matches_ref.document(str(match["id"])).set(match)
+    # Save new next_matches (global)
+    for match in next_matches:
+        global_id = f"{countryId}_{leagueId}_{match['id']}"
+        global_next_matches_ref.document(global_id).set(match)
 
 def extract_league_tables(country, league, local_driver):
     from scraper.firestore_manager import get_firestore_client
